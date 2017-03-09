@@ -198,7 +198,7 @@ COPY . .
 USER postgres
 RUN  service postgresql start && psql -f ci/prepare-db.sql
 EXPOSE 5432
-CMD ["/usr/lib/postgresql/9.4/bin/postgres", "-D", "/var/lib/postgresql/9.4/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
+CMD service postgresql start
 EOF
 
 docker build --tag="yeti-switch.org/yeti-postgresql" --file Dockerfile.PG .
