@@ -222,10 +222,6 @@ RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
 RUN mkdir -p /build
   
-#RUN git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-#RUN git fetch
-#RUN for X in $(git branch -r | grep -v HEAD); do git branch --track $(echo "${X}" | sed -e 's@.*/@@g') ${X} || true; done
-  
 CMD export GEMRC=".gemrc"&&make package
 EOF
 
