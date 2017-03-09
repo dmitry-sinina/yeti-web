@@ -215,7 +215,7 @@ RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /et
 RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
 EOF
 
-EXTRA_PACKAGES="ruby2.3"
+EXTRA_PACKAGES="ruby2.3 python-jinja2 ruby2.3-dev python-yaml"
 
 case "${TRAVIS_DEBIAN_EXTRA_REPOSITORY:-}" in
 	https:*)
