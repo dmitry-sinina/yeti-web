@@ -275,7 +275,7 @@ RUN git fetch
 RUN for X in \$(git branch -r | grep -v HEAD); do git branch --track \$(echo "\${X}" | sed -e 's@.*/@@g') \${X} || true; done
 
 RUN su postgres -c "psql -f ci/prepare-db.sql"
-RUN export GEMRC=".gemrc"&&make package
+CMD export GEMRC=".gemrc"&&make package
 EOF
 
 Info "Using Dockerfile:"
