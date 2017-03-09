@@ -181,99 +181,42 @@ fi
 
 ## Build ######################################################################
 
+cat >Dockerfile.PG <<EOF
+FROM debian:jessie
+RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
+COPY . .
+USER postgres
+RUN  service postgresql start && psql -f ci/prepare-db.sql
+EXPOSE 5432
+CMD ["/usr/lib/postgresql/9.4/bin/postgres", "-D", "/var/lib/postgresql/9.4/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
+EOF
+
+docker build --tag="Yeti-Postgresql" --file Dockerfile.PG .
+docker run "Yeti-Postgresql"
+
 cat >Dockerfile <<EOF
-FROM debian:${TRAVIS_DEBIAN_DISTRIBUTION}
-RUN echo "deb ${TRAVIS_DEBIAN_MIRROR} ${TRAVIS_DEBIAN_DISTRIBUTION} main" > /etc/apt/sources.list
-RUN echo "deb-src ${TRAVIS_DEBIAN_MIRROR} ${TRAVIS_DEBIAN_DISTRIBUTION} main" >> /etc/apt/sources.list
-EOF
-
-if [ "${TRAVIS_DEBIAN_BACKPORTS}" = true ]
-then
-	cat >>Dockerfile <<EOF
-RUN echo "deb ${TRAVIS_DEBIAN_MIRROR} ${TRAVIS_DEBIAN_DISTRIBUTION}-backports main" >> /etc/apt/sources.list
-RUN echo "deb-src ${TRAVIS_DEBIAN_MIRROR} ${TRAVIS_DEBIAN_DISTRIBUTION}-backports main" >> /etc/apt/sources.list
-EOF
-fi
-
-if [ "${TRAVIS_DEBIAN_SECURITY_UPDATES}" = true ]
-then
-	cat >>Dockerfile <<EOF
-RUN echo "deb http://security.debian.org/ ${TRAVIS_DEBIAN_DISTRIBUTION}/updates main" >> /etc/apt/sources.list
-RUN echo "deb-src http://security.debian.org/ ${TRAVIS_DEBIAN_DISTRIBUTION}/updates main" >> /etc/apt/sources.list
-EOF
-fi
-
-if [ "${TRAVIS_DEBIAN_EXPERIMENTAL}" = true ]
-then
-	cat >>Dockerfile <<EOF
-RUN echo "deb ${TRAVIS_DEBIAN_MIRROR} experimental main" >> /etc/apt/sources.list
-RUN echo "deb-src ${TRAVIS_DEBIAN_MIRROR} experimental main" >> /etc/apt/sources.list
-EOF
-fi
-cat >>Dockerfile <<EOF
+FROM debian:jessie
+RUN echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list
+RUN echo "deb-src http://ftp.de.debian.org/debian jessie main" >> /etc/apt/sources.list
+RUN echo "deb http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
+RUN echo "deb-src http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
 RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
 RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
-EOF
-
-EXTRA_PACKAGES="ruby2.3 python-jinja2 ruby2.3-dev python-yaml"
-
-case "${TRAVIS_DEBIAN_EXTRA_REPOSITORY:-}" in
-	https:*)
-		EXTRA_PACKAGES="${EXTRA_PACKAGES} apt-transport-https"
-		;;
-esac
-
-if [ "${TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL:-}" != "" ]
-then
-	EXTRA_PACKAGES="${EXTRA_PACKAGES} wget gnupg"
-fi
-
-cat >>Dockerfile <<EOF
 RUN apt-get update && apt-get dist-upgrade --yes
-RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ${EXTRA_PACKAGES}
+RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ruby2.3 python-jinja2 ruby2.3-dev python-yaml
 
-WORKDIR $(pwd)
+WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
-EOF
-
-if [ "${TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL:-}" != "" ]
-then
-	cat >>Dockerfile <<EOF
-RUN wget -O- "${TRAVIS_DEBIAN_EXTRA_REPOSITORY_GPG_URL}" | apt-key add -
-EOF
-fi
-
-# We're adding the extra repository only after the essential tools have been
-# installed, so that we have apt-transport-https if the repository needs it.
-if [ "${TRAVIS_DEBIAN_EXTRA_REPOSITORY:-}" != "" ]
-then
-	cat >>Dockerfile <<EOF
-RUN echo "deb ${TRAVIS_DEBIAN_EXTRA_REPOSITORY}" >> /etc/apt/sources.list
-RUN echo "deb-src ${TRAVIS_DEBIAN_EXTRA_REPOSITORY}" >> /etc/apt/sources.list
-RUN apt-get update
-EOF
-fi
-
-if [ "${TRAVIS_DEBIAN_BACKPORTS}" = "true" ]
-then
-        cat >>Dockerfile <<EOF
-RUN echo "Package: *" >> /etc/apt/preferences.d/travis_debian_net
-RUN echo "Pin: release a=${TRAVIS_DEBIAN_DISTRIBUTION}-backports" >> /etc/apt/preferences.d/travis_debian_net
-RUN echo "Pin-Priority: 500" >> /etc/apt/preferences.d/travis_debian_net
-EOF
-fi
-
-cat >>Dockerfile <<EOF
 RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
-RUN mkdir -p ${TRAVIS_DEBIAN_BUILD_DIR}
-
+RUN mkdir -p /build
+  
 RUN git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 RUN git fetch
-RUN for X in \$(git branch -r | grep -v HEAD); do git branch --track \$(echo "\${X}" | sed -e 's@.*/@@g') \${X} || true; done
-
+RUN for X in $(git branch -r | grep -v HEAD); do git branch --track $(echo "${X}" | sed -e 's@.*/@@g') ${X} || true; done
+  
 RUN su postgres -c "psql -f ci/prepare-db.sql"
 CMD export GEMRC=".gemrc"&&make package
 EOF
@@ -292,11 +235,6 @@ rm -f Dockerfile
 CIDFILE="$(mktemp --dry-run)"
 ARGS="--cidfile=${CIDFILE}"
 
-if [ "${TRAVIS_DEBIAN_NETWORK_ENABLED}" != "true" ]
-then
-	ARGS="${ARGS} --net=none"
-fi
-
 Info "Running build"
 # shellcheck disable=SC2086
 docker run --env=DEB_BUILD_OPTIONS="${DEB_BUILD_OPTIONS:-}" ${ARGS} "${TAG}"
@@ -314,9 +252,3 @@ rm -f "${CIDFILE}"
 Info "Build successful"
 ls -la "${TRAVIS_DEBIAN_TARGET_DIR}"
 
-#  _                   _          _      _     _                          _
-# | |_ _ __ __ ___   _(_)___   __| | ___| |__ (_) __ _ _ __    _ __   ___| |_
-# | __| '__/ _` \ \ / / / __| / _` |/ _ \ '_ \| |/ _` | '_ \  | '_ \ / _ \ __|
-# | |_| | | (_| |\ V /| \__ \| (_| |  __/ |_) | | (_| | | | |_| | | |  __/ |_
-#  \__|_|  \__,_| \_/ |_|___(_)__,_|\___|_.__/|_|\__,_|_| |_(_)_| |_|\___|\__|
-#
