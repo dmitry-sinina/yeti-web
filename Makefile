@@ -40,6 +40,8 @@ all_env:
 
 	@$(info:msg=install/update gems)
 	@cp -r $(bundle_cfg_dir) .bundle
+	la -la .gem/bin
+	gem list
 	@$(bundle_bin) install --jobs=4
 
 	@$(info:msg=precompile assets)
