@@ -45,6 +45,9 @@ all_env:
 	gem list
 	@$(bundle_bin) install --jobs=4
 
+	@$(info:msg=Use database.yml.distr)
+	@cp -v config/database.yml.distr config/database.yml
+
 	@$(info:msg=precompile assets)
 	@$(bundle_bin) exec ./bin/rake assets:precompile
 
