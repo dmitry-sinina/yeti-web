@@ -213,7 +213,7 @@ RUN echo "deb-src http://security.debian.org/ jessie/updates main" >> /etc/apt/s
 RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
 RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
 RUN apt-get update && apt-get dist-upgrade --yes
-RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ruby2.3 python-jinja2 ruby2.3-dev python-yaml libpq5
+RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ruby2.3 python-jinja2 ruby2.3-dev python-yaml libpq5 zlib1g-dev libpq-dev libxslt-dev libxml2-dev
 
 WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
