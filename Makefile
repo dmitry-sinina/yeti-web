@@ -34,7 +34,7 @@ all: version.yml
 all_env:
 	@$(info:msg=apply build .gemrc)
 	@cp -v .gemrc_build .gemrc
-        mkdir .gem
+	mkdir .gem
 
 	@$(info:msg=install bundler)
 	@gem install bundler -v '1.8.9'
