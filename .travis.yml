@@ -7,7 +7,7 @@ env:
   - TRAVIS_DEBIAN_DISTRIBUTION=jessie
 
 script:
-  - sh travis.sh
+  - sh ci/travis.sh
 
 branches:
   except:

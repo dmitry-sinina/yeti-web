@@ -264,7 +264,7 @@ EOF
 fi
 
 cat >>Dockerfile <<EOF
-RUN apt-get install --yes --no-install-recommends libnanomsg-dev postgresql-server-dev-all
+RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
@@ -274,6 +274,7 @@ RUN git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 RUN git fetch
 RUN for X in \$(git branch -r | grep -v HEAD); do git branch --track \$(echo "\${X}" | sed -e 's@.*/@@g') \${X} || true; done
 
+RUN su postgres -c "psql -f ci/prepare-db.sql"
 RUN export GEMRC=".gemrc"&&make package
 EOF
 
