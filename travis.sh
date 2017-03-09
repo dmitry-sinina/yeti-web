@@ -210,8 +210,9 @@ RUN echo "deb ${TRAVIS_DEBIAN_MIRROR} experimental main" >> /etc/apt/sources.lis
 RUN echo "deb-src ${TRAVIS_DEBIAN_MIRROR} experimental main" >> /etc/apt/sources.list
 EOF
 fi
-
+cat >>Dockerfile <<EOF
 RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
+EOF
 
 EXTRA_PACKAGES="ruby2.3"
 
