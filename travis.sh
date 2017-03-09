@@ -212,7 +212,7 @@ EOF
 fi
 cat >>Dockerfile <<EOF
 RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
-RUN ept-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
+RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
 EOF
 
 EXTRA_PACKAGES="ruby2.3"
