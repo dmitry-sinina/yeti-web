@@ -203,7 +203,7 @@ EOF
 
 docker build --tag="yeti-switch.org/yeti-postgresql" --file Dockerfile.PG .
 docker ps
-docker run "yeti-switch.org/yeti-postgresql"
+docker run -p 5432:5432 "yeti-switch.org/yeti-postgresql"
 docker ps
 
 cat >Dockerfile <<EOF
