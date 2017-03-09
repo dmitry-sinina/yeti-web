@@ -183,8 +183,16 @@ fi
 
 cat >Dockerfile.PG <<EOF
 FROM debian:jessie
+RUN echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list
+RUN echo "deb-src http://ftp.de.debian.org/debian jessie main" >> /etc/apt/sources.list
+RUN echo "deb http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
+RUN echo "deb-src http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
+RUN apt-get update && apt-get dist-upgrade --yes
 RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
+
+WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
+
 USER postgres
 RUN  service postgresql start && psql -f ci/prepare-db.sql
 EXPOSE 5432
