@@ -226,8 +226,12 @@ COPY . .
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
 RUN mkdir -p /build
-
-CMD service postgresql start&& su postgres -c"psql -f ci/prepare-db.sql"&&export GEMRC=".gemrc"&&make package
+RUN service postgresql start&& su postgres -c"psql -f ci/prepare-db.sql"
+RUN service postgresql start&& ./aux/yeti-db --config config/database.yml.distr --sql-dir sql init
+RUN service postgresql start&& ./aux/yeti-db --config config/database.yml.distr --sql-dir sql --cdr init 
+RUN service postgresql start&& ./aux/yeti-db --config config/database.yml.distr --sql-dir sql apply_all
+RUN service postgresql start&& ./aux/yeti-db --config config/database.yml.distr --sql-dir sql --cdr apply_all
+CMD service postgresql start&&export GEMRC=".gemrc"&&make package
 EOF
 
 Info "Using Dockerfile:"
