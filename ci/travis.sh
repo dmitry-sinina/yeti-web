@@ -227,11 +227,7 @@ RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
 RUN mkdir -p /build
 
-CMD service postgresql start
-USER postgres
-CMD psql -f ci/prepare-db.sql
-USER root
-CMD export GEMRC=".gemrc"&&make package
+CMD service postgresql start&& su postgres -c"psql -f ci/prepare-db.sql"&&export GEMRC=".gemrc"&&make package
 EOF
 
 Info "Using Dockerfile:"
