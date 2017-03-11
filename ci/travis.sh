@@ -181,30 +181,30 @@ fi
 
 ## Build ######################################################################
 
-cat >Dockerfile.PG <<EOF
-FROM debian:jessie
-RUN echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list
-RUN echo "deb-src http://ftp.de.debian.org/debian jessie main" >> /etc/apt/sources.list
-RUN echo "deb http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
-RUN echo "deb-src http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
-RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
-RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
-RUN apt-get update && apt-get dist-upgrade --yes
-RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
-
-WORKDIR /home/travis/build/dmitry-sinina/yeti-web
-COPY . .
-
-USER postgres
-RUN  service postgresql start && psql -f ci/prepare-db.sql
-EXPOSE 5432
-CMD service postgresql start
-EOF
-
-docker build --tag="yeti-switch.org/yeti-postgresql" --file Dockerfile.PG .
-docker ps
-docker run -p 127.0.0.1:5432:5432 "yeti-switch.org/yeti-postgresql"
-docker ps
+#cat >Dockerfile.PG <<EOF
+#FROM debian:jessie
+#RUN echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list
+#RUN echo "deb-src http://ftp.de.debian.org/debian jessie main" >> /etc/apt/sources.list
+#RUN echo "deb http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
+#RUN echo "deb-src http://security.debian.org/ jessie/updates main" >> /etc/apt/sources.list
+#RUN echo "deb http://pkg.yeti-switch.org/debian/jessie unstable main ext" >> /etc/apt/sources.list
+#RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
+#RUN apt-get update && apt-get dist-upgrade --yes
+#RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
+#
+#WORKDIR /home/travis/build/dmitry-sinina/yeti-web
+#COPY . .
+#
+#USER postgres
+#RUN  service postgresql start && psql -f ci/prepare-db.sql
+#EXPOSE 5432
+#CMD service postgresql start
+#EOF
+#
+#docker build --tag="yeti-switch.org/yeti-postgresql" --file Dockerfile.PG .
+#docker ps
+#docker run -p 127.0.0.1:5432:5432 "yeti-switch.org/yeti-postgresql"
+#docker ps
 
 cat >Dockerfile <<EOF
 FROM debian:jessie
@@ -217,13 +217,18 @@ RUN apt-key adv --keyserver keys.gnupg.net --recv-key 9CEBFFC569A832B6
 RUN apt-get update && apt-get dist-upgrade --yes
 RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ruby2.3 python-jinja2 ruby2.3-dev python-yaml libpq5 zlib1g-dev libpq-dev libxslt-dev libxml2-dev
 
+RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
+RUN  service postgresql start && psql -f ci/prepare-db.sql
+EXPOSE 5432
+
 WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
 RUN mkdir -p /build
-  
+
+CMD service postgresql start  
 CMD export GEMRC=".gemrc"&&make package
 EOF
 
