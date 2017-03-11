@@ -223,13 +223,14 @@ EXPOSE 5432
 WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
 
-RUN  service postgresql start && psql -f ci/prepare-db.sql
-
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
 RUN mkdir -p /build
 
-CMD service postgresql start  
+CMD service postgresql start
+USER postgres
+CMD psql -f ci/prepare-db.sql
+USER root
 CMD export GEMRC=".gemrc"&&make package
 EOF
 
