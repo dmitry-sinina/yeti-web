@@ -218,11 +218,12 @@ RUN apt-get update && apt-get dist-upgrade --yes
 RUN apt-get install --yes --no-install-recommends build-essential devscripts git-buildpackage ca-certificates debhelper fakeroot lintian ruby2.3 python-jinja2 ruby2.3-dev python-yaml libpq5 zlib1g-dev libpq-dev libxslt-dev libxml2-dev
 
 RUN apt-get install --yes --no-install-recommends postgresql-9.4 postgresql-9.4-pgq3 postgresql-9.4-prefix postgresql-9.4-yeti postgresql-contrib-9.4 libpq5
-RUN  service postgresql start && psql -f ci/prepare-db.sql
 EXPOSE 5432
 
 WORKDIR /home/travis/build/dmitry-sinina/yeti-web
 COPY . .
+
+RUN  service postgresql start && psql -f ci/prepare-db.sql
 
 RUN rm -f Dockerfile
 RUN git checkout .travis.yml || true
