@@ -47,9 +47,10 @@ module Jobs
             end_date: end_dt,
             type_id: invoice_type
         )
-        account.transaction do
-          InvoiceGenerator.new(inv).save!
-        end
+        inv.save!
+        # account.transaction do
+        #   InvoiceGenerator.new(inv).save!
+        # end
       else
         #log
       end

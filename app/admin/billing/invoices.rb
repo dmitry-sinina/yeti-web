@@ -19,21 +19,31 @@ ActiveAdmin.register Billing::Invoice, as: 'Invoice' do
   includes :contractor, :account, :state, :type
 
   controller do
+  #
+  #   def create_resource(object)
+  #     object.model.type_id=Billing::InvoiceType::MANUAL #TODO fix this. We need separate method for manual creation
+  #     Billing::Invoice.new(object.model).save!
+  #   end
+  #
+  #   def create
+  #     begin
+  #       create!
+  #     rescue StandardError => e
+  #       logger.warn { e.message }
+  #       logger.warn { e.backtrace.join("\n") }
 
-    def create_resource(object)
-      object.model.type_id=Billing::InvoiceType::MANUAL #TODO fix this. We need separate method for manual creation
-      InvoiceGenerator.new(object.model).save!
-    end
+  #       redirect_to :back
+  #     end
+  #   end
+  #
 
-    def create
+    def destroy
       begin
-        create!
+        resource.deletion_request!
       rescue StandardError => e
-        logger.warn { e.message }
-        logger.warn { e.backtrace.join("\n") }
         flash[:error] = e.message
-        redirect_to :back
       end
+      redirect_to :back
     end
 
   end
@@ -44,6 +54,10 @@ ActiveAdmin.register Billing::Invoice, as: 'Invoice' do
       resource.approve
     end
     redirect_to collection_path, notice: "#{active_admin_config.resource_label.pluralize} are approved!"
+  end
+
+  member_action :deletion_request, method: :delete do
+    resource.deletion_request
   end
 
   member_action :approve, method: :post do
@@ -137,6 +151,9 @@ ActiveAdmin.register Billing::Invoice, as: 'Invoice' do
     selectable_column
     id_column
     actions
+#    column :actions do |c|
+#      link_to("Delete", deletion_request_invoice_path(c), method: :delete)
+#    end
     column :contractor, footer: -> do
       strong do
         "Total:"

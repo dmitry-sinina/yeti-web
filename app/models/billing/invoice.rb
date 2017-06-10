@@ -49,6 +49,9 @@ class Billing::Invoice < Cdr::Base
 
   validates_presence_of :contractor, :account, :end_date, :start_date
 
+  validate :validate_interval
+
+
   has_paper_trail class_name: 'AuditLogItem'
 
 
@@ -63,6 +66,7 @@ class Billing::Invoice < Cdr::Base
       self.calls_count ||= 0
       self.calls_duration ||= 0
       self.state_id = Billing::InvoiceState::GENERATION_WAITING
+      self.type_id=Billing::InvoiceType::MANUAL
     end
   end
 
@@ -71,6 +75,9 @@ class Billing::Invoice < Cdr::Base
     execute_sp("lock table billing.invoices in exclusive mode")
   end
 
+  after_create do
+    delay(queue: :generate_invoice).generate! # all calculation moved to generate
+  end
 
   def generate!
     transaction do
@@ -266,6 +273,15 @@ class Billing::Invoice < Cdr::Base
     "Invoice #{self.id}"
   end
 
+  def deletion_request!
+    if self.state_id != Billing::InvoiceState::DELETION_WAITING
+      update_attribute('state_id', Billing::InvoiceState::DELETION_WAITING) ##skip validation
+      delay.delete
+    else
+      raise "invoice already wait deletion"
+    end
+  end
+
   def approve
     self.state_id=Billing::InvoiceState::APPROVED
     self.save
@@ -328,6 +344,40 @@ class Billing::Invoice < Cdr::Base
     if !invoice_document.nil?
       invoice_document.send_invoice
     end
+  end
+
+  protected
+  def validate_interval #validate invoice uniquness on interval
+
+    ## by INVOICE
+    res=fetch_sp_val("select 1 from billing.invoices WHERE account_id=? AND vendor_invoice=? and tstzrange(start_date, end_date)&&tstzrange(?, ?) limit 1",
+                     self.account_id, self.vendor_invoice, self.start_date, self.end_date
+    )
+
+    if !res.nil?
+      #raise "billing.invoice_generate: some vendor invoices already found for this interval"
+      self.errors.add(:start_date, "Some invoice alreasy exists for such interval")
+      self.errors.add(:end_date, "Some invoice alreasy exists for such interval")
+      return
+    end
+
+    ## by CDRS
+    if vendor_invoice
+      res=fetch_sp_val("select 1 from cdr.cdr WHERE vendor_acc_id=? AND time_start>=? and time_start<? AND vendor_invoice_id IS NOT NULL LIMIT 1",
+                       self.account_id, self.start_date, self.end_date
+      )
+    else
+      res=fetch_sp_val("select 1 from cdr.cdr WHERE customer_acc_id=? AND time_start>=? and time_start<? AND customer_invoice_id IS NOT NULL LIMIT 1",
+                       self.account_id, self.start_date, self.end_date
+      )
+    end
+
+    if !res.nil?
+      #raise "billing.invoice_generate: some vendor invoices already found for this interval"
+      self.errors.add(:start_date, "Some CDRs from such interval already invoiced")
+      self.errors.add(:end_date, "Some CDRs from such interval already invoiced")
+    end
+
   end
 
 end
