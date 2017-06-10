@@ -8,15 +8,18 @@ class InvoiceGenerator
 
   def save!
     @billing_invoice.transaction do
-      @billing_invoice.save!
+      @billing_invoice.save! # synchronous validation and invoice saving
+      @billing_invoice.delay(queue: :generate_invoice).generate! # all calculation moved to generate
       @billing_invoice.reload # need reload because data changed in after_create callback
-      begin
-        InvoiceDocs.new(@billing_invoice).save!
-      rescue InvoiceDocs::TemplateUndefined => e
-         Rails.logger.info { e.message }
-      end
-    end
+    #   begin
+    #     InvoiceDocs.new(@billing_invoice).save!
+    #   rescue InvoiceDocs::TemplateUndefined => e
+    #      Rails.logger.info { e.message }
+    #   end
+    # end
     @billing_invoice
+    end
   end
+
 
 end

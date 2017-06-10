@@ -56,7 +56,7 @@ module Jobs
 
     end
 
-    handle_asynchronously :generate_invoice
+#    handle_asynchronously :generate_invoice
 
   end
 end

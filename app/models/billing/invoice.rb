@@ -22,8 +22,8 @@
 #
 
 class Billing::Invoice < Cdr::Base
-  has_many :vendor_cdrs, -> { where vendor_invoice: true }, class_name: 'Cdr', foreign_key: 'vendor_invoice_id'
-  has_many :customer_cdrs, -> { where vendor_invoice: false }, class_name: 'Cdr', foreign_key: 'customer_invoice_id'
+  has_many :vendor_cdrs, -> {where vendor_invoice: true}, class_name: 'Cdr', foreign_key: 'vendor_invoice_id'
+  has_many :customer_cdrs, -> {where vendor_invoice: false}, class_name: 'Cdr', foreign_key: 'customer_invoice_id'
 
 
   belongs_to :account, class_name: 'Account', foreign_key: 'account_id'
@@ -34,61 +34,70 @@ class Billing::Invoice < Cdr::Base
   has_one :invoice_document, dependent: :destroy
   has_many :full_destinations, class_name: Billing::InvoiceDestination, foreign_key: :invoice_id, dependent: :delete_all
   has_many :full_networks, class_name: Billing::InvoiceNetwork, foreign_key: :invoice_id, dependent: :delete_all
-  has_many :destinations, -> {where("successful_calls_count>0") }, class_name: Billing::InvoiceDestination, foreign_key: :invoice_id
-  has_many :networks, -> {where("successful_calls_count>0") }, class_name: Billing::InvoiceNetwork, foreign_key: :invoice_id
+  has_many :destinations, -> {where("successful_calls_count>0")}, class_name: Billing::InvoiceDestination, foreign_key: :invoice_id
+  has_many :networks, -> {where("successful_calls_count>0")}, class_name: Billing::InvoiceNetwork, foreign_key: :invoice_id
 
 
   before_destroy do
-     cdrs =  Cdr::Cdr.where('time_start >= ? AND time_start <= ? ', self.start_date, self.end_date)
-     if self.vendor_invoice
-       cdrs.where(vendor_invoice_id: self.id).update_all(vendor_invoice_id: nil)
-     else
-       cdrs.where(customer_invoice_id: self.id).update_all(customer_invoice_id: nil)
-     end
+    cdrs = Cdr::Cdr.where('time_start >= ? AND time_start <= ? ', self.start_date, self.end_date)
+    if self.vendor_invoice
+      cdrs.where(vendor_invoice_id: self.id).update_all(vendor_invoice_id: nil)
+    else
+      cdrs.where(customer_invoice_id: self.id).update_all(customer_invoice_id: nil)
+    end
   end
 
-  validates_presence_of :contractor, :account,  :end_date , :start_date
+  validates_presence_of :contractor, :account, :end_date, :start_date
 
   has_paper_trail class_name: 'AuditLogItem'
 
 
-  scope :for_customer, -> { where vendor_invoice: false }
-  scope :for_vendor, -> { where vendor_invoice: true }
-  scope :approved, -> { where state_id: Billing::InvoiceState::APPROVED }
-  scope :pending, -> { where state_id: Billing::InvoiceState::PENDING }
+  scope :for_customer, -> {where vendor_invoice: false}
+  scope :for_vendor, -> {where vendor_invoice: true}
+  scope :approved, -> {where state_id: Billing::InvoiceState::APPROVED}
+  scope :pending, -> {where state_id: Billing::InvoiceState::PENDING}
+
+  after_initialize do
+    if self.new_record?
+      self.amount ||= 0
+      self.calls_count ||= 0
+      self.calls_duration ||= 0
+      self.state_id = Billing::InvoiceState::GENERATION_WAITING
+    end
+  end
 
   before_create do
     execute_sp("SET LOCAL TIMEZONE TO ?", account.timezone.name)
+    execute_sp("lock table billing.invoices in exclusive mode")
   end
 
-  # after_create do
-  #   execute_sp("SELECT * FROM billing.invoice_generate(?)", self.id)
-  # end
 
-  after_create do
+  def generate!
+    transaction do
 
-    execute_sp("lock table billing.invoices in exclusive mode") # see ticket #108
-    # we need lock customer-vendor pair. Now I use lock table for this - this is dirty workaround
-    # But we just need prevent vendor's invoice generation if any customer's invoice was generating now and vice versa
+      execute_sp("SET LOCAL TIMEZONE TO ?", account.timezone.name)
+      execute_sp("lock table billing.invoices in exclusive mode") # see ticket #108
+      # we need lock customer-vendor pair. Now I use lock table for this - this is dirty workaround
+      # But we just need prevent vendor's invoice generation if any customer's invoice was generating now and vice versa
 
-    if self.start_date.nil?
-      previous_invoice=Billing::Invoice.where(account_id: self.account_id).order("end_date desc").limit(1).take
-      if previous_invoice.nil?
-        raise "Can't detect date start"
-      end
-      self.start_date=previous_invoice.end_date
-    end
-
-    if vendor_invoice # vendor invoice
-
-      res=fetch_sp_val("select 1 from cdr.cdr WHERE vendor_acc_id=? AND time_start>=? and time_start<? AND vendor_invoice_id IS NOT NULL LIMIT 1",
-                       self.account_id, self.start_date, self.end_date
-      )
-      if !res.nil?
-        raise "billing.invoice_generate: some vendor invoices already found for this interval"
+      if self.start_date.nil?
+        previous_invoice=Billing::Invoice.where(account_id: self.account_id).order("end_date desc").limit(1).take
+        if previous_invoice.nil?
+          raise "Can't detect date start"
+        end
+        self.start_date=previous_invoice.end_date
       end
 
-      execute_sp("
+      if vendor_invoice # vendor invoice
+
+        res=fetch_sp_val("select 1 from cdr.cdr WHERE vendor_acc_id=? AND time_start>=? and time_start<? AND vendor_invoice_id IS NOT NULL LIMIT 1",
+                         self.account_id, self.start_date, self.end_date
+        )
+        if !res.nil?
+          raise "billing.invoice_generate: some vendor invoices already found for this interval"
+        end
+
+        execute_sp("
         WITH invoice_data as (
           UPDATE cdr.cdr SET vendor_invoice_id=?
           WHERE
@@ -122,10 +131,10 @@ class Billing::Invoice < Cdr::Base
           max(case success when true then time_start else null end)
         from invoice_data
         group by dialpeer_prefix, dst_country_id, dst_network_id, dialpeer_next_rate",
-                 self.id, self.account_id, self.start_date, self.end_date, self.id
-      )
+                   self.id, self.account_id, self.start_date, self.end_date, self.id
+        )
 
-      execute_sp("
+        execute_sp("
         insert into billing.invoice_networks(
           country_id, network_id, rate,
           calls_count,
@@ -151,19 +160,19 @@ class Billing::Invoice < Cdr::Base
         from billing.invoice_destinations
         where invoice_id=?
         group by country_id, network_id, rate",
-                 self.id, self.id
-      )
+                   self.id, self.id
+        )
 
-    else # customer invoice
+      else # customer invoice
 
-      res=fetch_sp_val("select 1 from cdr.cdr WHERE customer_acc_id=? AND time_start>=? and time_start<? AND customer_invoice_id IS NOT NULL LIMIT 1",
-                       self.account_id, self.start_date, self.end_date
-      )
-      if !res.nil?
-        raise "billing.invoice_generate: some customer invoices already found for this interval"
-      end
+        res=fetch_sp_val("select 1 from cdr.cdr WHERE customer_acc_id=? AND time_start>=? and time_start<? AND customer_invoice_id IS NOT NULL LIMIT 1",
+                         self.account_id, self.start_date, self.end_date
+        )
+        if !res.nil?
+          raise "billing.invoice_generate: some customer invoices already found for this interval"
+        end
 
-      execute_sp("
+        execute_sp("
         WITH invoice_data as (
           UPDATE cdr.cdr SET customer_invoice_id=?
           WHERE
@@ -197,10 +206,10 @@ class Billing::Invoice < Cdr::Base
           max(case success when true then time_start else null end)
         from invoice_data
         group by destination_prefix, dst_country_id, dst_network_id, destination_next_rate",
-                 self.id, self.account_id, self.start_date, self.end_date, self.id
-      )
+                   self.id, self.account_id, self.start_date, self.end_date, self.id
+        )
 
-      execute_sp("
+        execute_sp("
         insert into billing.invoice_networks(
           country_id, network_id, rate,
           calls_count,
@@ -226,35 +235,28 @@ class Billing::Invoice < Cdr::Base
         from billing.invoice_destinations
         where invoice_id=?
         group by country_id, network_id, rate",
-                 self.id, self.id
-      )
+                   self.id, self.id
+        )
 
+      end
+
+      data=destinations.summary
+      self.amount=data.amount
+      self.calls_count=data.calls_count
+      self.successful_calls_count=data.successful_calls_count
+      self.calls_duration=data.calls_duration
+      self.first_call_at=data.first_call_at
+      self.first_successful_call_at=data.first_successful_call_at
+      self.last_call_at=data.last_call_at
+      self.last_successful_call_at=data.last_successful_call_at
+      self.state_id = Billing::InvoiceState::PENDING
+      self.save!
     end
-    detalize_invoice
 
+
+    delay(queue: :invoice_document).regenerate_document
   end
 
-
-  after_initialize do
-    if self.new_record?
-      self.amount ||= 0
-      self.calls_count ||= 0
-      self.calls_duration ||= 0
-    end
-  end
-
-  def detalize_invoice
-    data=destinations.summary
-    self.amount=data.amount
-    self.calls_count=data.calls_count
-    self.successful_calls_count=data.successful_calls_count
-    self.calls_duration=data.calls_duration
-    self.first_call_at=data.first_call_at
-    self.first_successful_call_at=data.first_successful_call_at
-    self.last_call_at=data.last_call_at
-    self.last_successful_call_at=data.last_successful_call_at
-    self.save!
-  end
 
   def cdr_filter_for_invoice
     "time_start=>'#{self.start_date.strftime("%Y-%m-%d %H%M%S.%L")}' AND time_end <'#{self.end_date.strftime("%Y-%m-%d %H%M%S.%L")}'"
@@ -263,7 +265,6 @@ class Billing::Invoice < Cdr::Base
   def display_name
     "Invoice #{self.id}"
   end
-
 
   def approve
     self.state_id=Billing::InvoiceState::APPROVED
@@ -285,14 +286,14 @@ class Billing::Invoice < Cdr::Base
       begin
         InvoiceDocs.new(self).save!
       rescue InvoiceDocs::TemplateUndefined => e
-        Rails.logger.info { e.message }
+        Rails.logger.info {e.message}
       end
     end
   end
 
   def invoice_period
     if self.vendor_invoice?
-       self.account.vendor_invoice_period
+      self.account.vendor_invoice_period
     else
       self.account.customer_invoice_period
     end
@@ -324,8 +325,8 @@ class Billing::Invoice < Cdr::Base
 
   #FIX this copy paste
   def send_email
-      if !invoice_document.nil?
-        invoice_document.send_invoice
+    if !invoice_document.nil?
+      invoice_document.send_invoice
     end
   end
 

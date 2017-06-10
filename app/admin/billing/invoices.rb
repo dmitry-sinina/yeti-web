@@ -143,7 +143,9 @@ ActiveAdmin.register Billing::Invoice, as: 'Invoice' do
       end
     end
     column :account
-    column :state
+    column :state do |c|
+      status_tag(c.state.name, c.state.color)
+    end
     column :start_date
     column :end_date
     column :amount, footer: -> do
