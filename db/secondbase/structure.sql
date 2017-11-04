@@ -656,18 +656,20 @@ SET search_path = cdr, pg_catalog;
 
 CREATE FUNCTION cdr_i_tgf() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$ 
-BEGIN  IF ( NEW.time_start >= DATE '2014-08-01' AND NEW.time_start < DATE '2014-09-01' ) THEN INSERT INTO cdr.cdr_201408 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2014-09-01' AND NEW.time_start < DATE '2014-10-01' ) THEN INSERT INTO cdr.cdr_201409 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2014-10-01' AND NEW.time_start < DATE '2014-11-01' ) THEN INSERT INTO cdr.cdr_201410 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2014-11-01' AND NEW.time_start < DATE '2014-12-01' ) THEN INSERT INTO cdr.cdr_201411 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2017-08-01' AND NEW.time_start < DATE '2017-09-01' ) THEN INSERT INTO cdr.cdr_201708 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2017-09-01' AND NEW.time_start < DATE '2017-10-01' ) THEN INSERT INTO cdr.cdr_201709 VALUES (NEW.*);
-ELSIF ( NEW.time_start >= DATE '2017-10-01' AND NEW.time_start < DATE '2017-11-01' ) THEN INSERT INTO cdr.cdr_201710 VALUES (NEW.*);
+    AS $$
+BEGIN  IF ( NEW.time_start >= '2014-08-01 00:00:00+00' AND NEW.time_start < '2014-09-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201408 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2014-09-01 00:00:00+00' AND NEW.time_start < '2014-10-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201409 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2014-10-01 00:00:00+00' AND NEW.time_start < '2014-11-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201410 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2014-11-01 00:00:00+00' AND NEW.time_start < '2014-12-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201411 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2017-08-01 00:00:00+00' AND NEW.time_start < '2017-09-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201708 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2017-09-01 00:00:00+00' AND NEW.time_start < '2017-10-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201709 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2017-10-01 00:00:00+00' AND NEW.time_start < '2017-11-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201710 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2017-11-01 00:00:00+00' AND NEW.time_start < '2017-12-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201711 VALUES (NEW.*);
+ELSIF ( NEW.time_start >= '2017-12-01 00:00:00+00' AND NEW.time_start < '2018-01-01 00:00:00+00' ) THEN INSERT INTO cdr.cdr_201712 VALUES (NEW.*);
  ELSE 
  RAISE EXCEPTION 'cdr.cdr_i_tg: time_start out of range.'; 
- END IF;  
-RETURN NULL; 
+ END IF;
+RETURN NULL;
 END; $$;
 
 
@@ -3233,6 +3235,26 @@ INHERITS (cdr);
 
 
 --
+-- Name: cdr_201711; Type: TABLE; Schema: cdr; Owner: -; Tablespace: 
+--
+
+CREATE TABLE cdr_201711 (
+    CONSTRAINT cdr_201711_time_start_check CHECK (((time_start >= '2017-11-01 02:00:00+02'::timestamp with time zone) AND (time_start < '2017-12-01 02:00:00+02'::timestamp with time zone)))
+)
+INHERITS (cdr);
+
+
+--
+-- Name: cdr_201712; Type: TABLE; Schema: cdr; Owner: -; Tablespace: 
+--
+
+CREATE TABLE cdr_201712 (
+    CONSTRAINT cdr_201712_time_start_check CHECK (((time_start >= '2017-12-01 02:00:00+02'::timestamp with time zone) AND (time_start < '2018-01-01 02:00:00+02'::timestamp with time zone)))
+)
+INHERITS (cdr);
+
+
+--
 -- Name: cdr_archive; Type: TABLE; Schema: cdr; Owner: -; Tablespace: 
 --
 
@@ -4750,6 +4772,34 @@ ALTER TABLE ONLY cdr_201710 ALTER COLUMN id SET DEFAULT nextval('cdr_id_seq'::re
 ALTER TABLE ONLY cdr_201710 ALTER COLUMN dump_level_id SET DEFAULT 0;
 
 
+--
+-- Name: id; Type: DEFAULT; Schema: cdr; Owner: -
+--
+
+ALTER TABLE ONLY cdr_201711 ALTER COLUMN id SET DEFAULT nextval('cdr_id_seq'::regclass);
+
+
+--
+-- Name: dump_level_id; Type: DEFAULT; Schema: cdr; Owner: -
+--
+
+ALTER TABLE ONLY cdr_201711 ALTER COLUMN dump_level_id SET DEFAULT 0;
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: cdr; Owner: -
+--
+
+ALTER TABLE ONLY cdr_201712 ALTER COLUMN id SET DEFAULT nextval('cdr_id_seq'::regclass);
+
+
+--
+-- Name: dump_level_id; Type: DEFAULT; Schema: cdr; Owner: -
+--
+
+ALTER TABLE ONLY cdr_201712 ALTER COLUMN dump_level_id SET DEFAULT 0;
+
+
 SET search_path = reports, pg_catalog;
 
 --
@@ -5088,6 +5138,22 @@ ALTER TABLE ONLY cdr_201709
 
 ALTER TABLE ONLY cdr_201710
     ADD CONSTRAINT cdr_201710_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cdr_201711_pkey; Type: CONSTRAINT; Schema: cdr; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY cdr_201711
+    ADD CONSTRAINT cdr_201711_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: cdr_201712_pkey; Type: CONSTRAINT; Schema: cdr; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY cdr_201712
+    ADD CONSTRAINT cdr_201712_pkey PRIMARY KEY (id);
 
 
 --
@@ -5465,6 +5531,20 @@ CREATE INDEX cdr_201709_time_start_idx ON cdr_201709 USING btree (time_start);
 --
 
 CREATE INDEX cdr_201710_time_start_idx ON cdr_201710 USING btree (time_start);
+
+
+--
+-- Name: cdr_201711_time_start_idx; Type: INDEX; Schema: cdr; Owner: -; Tablespace: 
+--
+
+CREATE INDEX cdr_201711_time_start_idx ON cdr_201711 USING btree (time_start);
+
+
+--
+-- Name: cdr_201712_time_start_idx; Type: INDEX; Schema: cdr; Owner: -; Tablespace: 
+--
+
+CREATE INDEX cdr_201712_time_start_idx ON cdr_201712 USING btree (time_start);
 
 
 --
