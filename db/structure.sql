@@ -12610,6 +12610,7 @@ CREATE TABLE destinations (
     uuid uuid DEFAULT public.uuid_generate_v1() NOT NULL,
     dst_number_min_length smallint DEFAULT 0 NOT NULL,
     dst_number_max_length smallint DEFAULT 100 NOT NULL,
+    reverse_billing boolean DEFAULT false NOT NULL,
     CONSTRAINT destinations_dst_number_max_length CHECK ((dst_number_max_length >= 0)),
     CONSTRAINT destinations_dst_number_min_length CHECK ((dst_number_min_length >= 0)),
     CONSTRAINT destinations_non_zero_initial_interval CHECK ((initial_interval > 0)),
@@ -12659,6 +12660,7 @@ CREATE TABLE dialpeers (
     routing_tag_id smallint,
     dst_number_min_length smallint DEFAULT 0 NOT NULL,
     dst_number_max_length smallint DEFAULT 100 NOT NULL,
+    reverse_billing boolean DEFAULT false NOT NULL,
     CONSTRAINT dialpeers_dst_number_max_length CHECK ((dst_number_max_length >= 0)),
     CONSTRAINT dialpeers_dst_number_min_length CHECK ((dst_number_min_length >= 0)),
     CONSTRAINT dialpeers_non_zero_initial_interval CHECK ((initial_interval > 0)),
@@ -12772,7 +12774,9 @@ CREATE TABLE gateways (
     term_proxy_transport_protocol_id smallint DEFAULT 1 NOT NULL,
     orig_proxy_transport_protocol_id smallint DEFAULT 1 NOT NULL,
     rel100_mode_id smallint DEFAULT 4 NOT NULL,
-    is_shared boolean DEFAULT false NOT NULL
+    is_shared boolean DEFAULT false NOT NULL,
+    max_30x_redirects smallint DEFAULT 0 NOT NULL,
+    max_transfers smallint DEFAULT 0 NOT NULL
 );
 
 
@@ -51550,6 +51554,7 @@ CREATE TABLE customers_auth (
     transport_protocol_id smallint,
     dst_number_min_length smallint DEFAULT 0 NOT NULL,
     dst_number_max_length smallint DEFAULT 100 NOT NULL,
+    check_account_balance boolean DEFAULT true NOT NULL,
     CONSTRAINT customers_auth_max_dst_number_length CHECK ((dst_number_min_length >= 0)),
     CONSTRAINT customers_auth_min_dst_number_length CHECK ((dst_number_min_length >= 0))
 );
@@ -52798,7 +52803,8 @@ CREATE TABLE import_customers_auth (
     transport_protocol_id smallint,
     transport_protocol_name character varying,
     min_dst_number_length smallint,
-    max_dst_number_length smallint
+    max_dst_number_length smallint,
+    check_account_balance boolean
 );
 
 
@@ -52853,7 +52859,8 @@ CREATE TABLE import_destinations (
     routing_tag_name character varying,
     asr_limit real,
     acd_limit real,
-    short_calls_limit real
+    short_calls_limit real,
+    reverse_billing boolean
 );
 
 
@@ -52917,7 +52924,8 @@ CREATE TABLE import_dialpeers (
     short_calls_limit real DEFAULT 1 NOT NULL,
     exclusive_route boolean,
     routing_tag_id smallint,
-    routing_tag_name character varying
+    routing_tag_name character varying,
+    reverse_billing boolean
 );
 
 
@@ -59832,4 +59840,6 @@ INSERT INTO public.schema_migrations (version) VALUES ('20170919200403');
 INSERT INTO public.schema_migrations (version) VALUES ('20171020164700');
 
 INSERT INTO public.schema_migrations (version) VALUES ('20171031211812');
+
+INSERT INTO public.schema_migrations (version) VALUES ('20171102183313');
 
