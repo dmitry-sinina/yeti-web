@@ -1,4 +1,9 @@
 class ReverseBilling < ActiveRecord::Migration
+
+  def stop_step
+    true
+  end
+
   def up
     execute %q{
       alter table class4.customers_auth add check_account_balance boolean not null default true;
