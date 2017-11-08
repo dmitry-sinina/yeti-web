@@ -2837,6 +2837,8 @@ BEGIN
   v_cdr.diversion_out:=i_diversion_out;
 
   v_cdr.customer_id:=i_customer_id;
+  v_cdr.customer_account_check_balance=i_customer_acc_check_balance;
+
   v_cdr.vendor_id:=i_vendor_id;
   v_cdr.customer_acc_id:=i_customer_acc_id;
   v_cdr.vendor_acc_id:=i_vendor_acc_id;
@@ -2861,13 +2863,14 @@ BEGIN
   v_cdr.destination_next_interval:=i_destination_next_interval;
   v_cdr.destination_fee:=i_destination_fee;
   v_cdr.destination_rate_policy_id:=i_destination_rate_policy_id;
+  v_cdr.destination_reverse_billing=i_destination.reverse_billing;
 
   v_cdr.dialpeer_initial_rate:=i_dialpeer_initial_rate::numeric;
   v_cdr.dialpeer_next_rate:=i_dialpeer_next_rate::numeric;
   v_cdr.dialpeer_initial_interval:=i_dialpeer_initial_interval;
   v_cdr.dialpeer_next_interval:=i_dialpeer_next_interval;
   v_cdr.dialpeer_fee:=i_dialpeer_fee;
-
+  v_cdr.dialpeer_reverse_billing=i_dialpeer.reverse_billing;
 
   /* sockets addresses */
   v_cdr.sign_orig_transport_protocol_id=i_lega_transport_protocol_id;
@@ -2885,7 +2888,6 @@ BEGIN
   v_cdr.local_tag=i_local_tag;
 
   v_cdr.is_redirected=i_is_redirected;
-  
 
   /* Call time data */
   v_cdr.time_start:=to_timestamp(v_time_data.time_start);
