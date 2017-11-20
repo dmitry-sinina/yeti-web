@@ -1,6 +1,11 @@
 class ReverseBilling < ActiveRecord::Migration
   def up
     execute %q{
+
+      alter type billing.cdr_v2
+        add attribute destination_reverse_billing boolean,
+        add attribute dialpeer_reverse_billing boolean;
+
       alter table cdr.cdr
         add destination_reverse_billing boolean,
         add dialpeer_reverse_billing boolean,
@@ -324,10 +329,18 @@ BEGIN
   v_billing_event.term_gw_id=v_cdr.term_gw_id;
   v_billing_event.routing_group_id=v_cdr.routing_group_id;
   v_billing_event.rateplan_id=v_cdr.rateplan_id;
+
   v_billing_event.destination_next_rate=v_cdr.destination_next_rate;
   v_billing_event.destination_fee=v_cdr.destination_fee;
+  v_billing_event.destination_initial_interval=v_cdr.destination_initial_interval;
+  v_billing_event.destination_next_interval=v_cdr.destination_next_interval;
+  v_billing_event.destination_initial_rate=v_cdr.destination_initial_rate;
+  v_billing_event.destination_reverse_billing=v_cdr.destination_reverse_billing;
+
   v_billing_event.dialpeer_next_rate=v_cdr.dialpeer_next_rate;
   v_billing_event.dialpeer_fee=v_cdr.dialpeer_fee;
+  v_billing_event.dialpeer_reverse_billing=v_cdr.dialpeer_reverse_billing;
+
   v_billing_event.internal_disconnect_code=v_cdr.internal_disconnect_code;
   v_billing_event.internal_disconnect_reason=v_cdr.internal_disconnect_reason;
   v_billing_event.disconnect_initiator_id=v_cdr.disconnect_initiator_id;
@@ -347,9 +360,6 @@ BEGIN
   v_billing_event.src_prefix_out=v_cdr.src_prefix_out;
   v_billing_event.dst_prefix_in=v_cdr.dst_prefix_in;
   v_billing_event.dst_prefix_out=v_cdr.dst_prefix_out;
-  v_billing_event.destination_initial_interval=v_cdr.destination_initial_interval;
-  v_billing_event.destination_next_interval=v_cdr.destination_next_interval;
-  v_billing_event.destination_initial_rate=v_cdr.destination_initial_rate;
   v_billing_event.orig_call_id=v_cdr.orig_call_id;
   v_billing_event.term_call_id=v_cdr.term_call_id;
   v_billing_event.local_tag=v_cdr.local_tag;
@@ -378,11 +388,15 @@ $BODY$
         drop column is_redirected,
         drop column customer_account_check_balance;
 
-      alter table cdr.cdr_archive
+    alter table cdr.cdr_archive
         drop column destination_reverse_billing,
         drop column dialpeer_reverse_billing,
         drop column is_redirected,
         drop column customer_account_check_balance;
+
+    alter type billing.cdr_v2
+        drop attribute destination_reverse_billing,
+        drop attribute dialpeer_reverse_billing;
 
     }
   end
