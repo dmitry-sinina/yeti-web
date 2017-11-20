@@ -20,12 +20,35 @@ class ReverseBilling < ActiveRecord::Migration
         drop column max_transfers;
 
       drop schema switch14 cascade;
+
+      create schema switch4;
+      create schema switch5;
+      create schema switch6;
+      create schema switch7;
+      create schema switch8;
+      create schema switch9;
+      create schema switch10;
+      create schema switch11;
+      create schema switch12;
+
     }
+
   end
 
 
   def up
     execute %q{
+
+      drop schema switch4 cascade;
+      drop schema switch5 cascade;
+      drop schema switch6 cascade;
+      drop schema switch7 cascade;
+      drop schema switch8 cascade;
+      drop schema switch9 cascade;
+      drop schema switch10 cascade;
+      drop schema switch11 cascade;
+      drop schema switch12 cascade;
+
       alter table class4.customers_auth add check_account_balance boolean not null default true;
       alter table data_import.import_customers_auth add check_account_balance boolean;
 
